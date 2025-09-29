@@ -88,7 +88,6 @@ def runPipeline(img, llrobot):
     try:
         xOff, yOff, w, h, dist, = detect(img)
         intake = canIntake(xOff, yOff, w, h, dist)
-            if 
 
         return np.array([[]]), img, [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]        
 
