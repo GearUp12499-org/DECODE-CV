@@ -7,6 +7,7 @@ import numpy as np
 import math
 
 inches2px = lambda inches: inches * 72.85714286
+px2inches = lambda px: px / 72.85714286
 
 def detect_and_visualize(img, in_per_px=0.01, show=True):
 
@@ -50,8 +51,8 @@ def detect_and_visualize(img, in_per_px=0.01, show=True):
         for (x, y, r) in circles:
             dist = math.sqrt((x - center_x) ** 2 + (y - center_y) ** 2)
 
-            x_offset_in = inches2px(x - center_x)
-            y_offset_in = inches2px(y - center_y)
+            x_offset_in = px2inches(x - center_x)
+            y_offset_in = px2inches(y - center_y)
 
             artifacts_found.append((dist, x_offset_in, y_offset_in, r))
 
