@@ -47,12 +47,14 @@ def detect(img, color):
         mask_purple = cv2.inRange(hsv, purple_lower, purple_upper)
 
         mask = cv2.bitwise_or(mask_green, mask_purple)
-
+        
+    # may need to do more here due to masking
     ksize = 31
     borderType = cv2.BORDER_CONSTANT
     mask = cv2.GaussianBlur(mask, (ksize, ksize), borderType) 
     kernel = np.ones((3, 3), np.uint8)
     mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel, iterations=1)
+
 
     circles = cv2.HoughCircles(
         mask,
