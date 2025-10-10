@@ -5,7 +5,7 @@ import math
 inches2px = lambda inches: inches * 72.85714286
 px2inches = lambda px: px / 72.85714286
 
-def detect_and_visualize(img, in_per_px=0.01, show=True):
+def detect_circles(img):
     artifacts_found = []
     hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
 
@@ -20,10 +20,6 @@ def detect_and_visualize(img, in_per_px=0.01, show=True):
     mask = cv2.bitwise_or(mask_green, mask_purple)
 
     mask = cv2.GaussianBlur(mask, (9, 9), 2)
-
-    cv2.imshow("Detected Circle", img)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
 
     kernel = np.ones((3, 3), np.uint8)
     mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel, iterations=1)
@@ -55,17 +51,23 @@ def detect_and_visualize(img, in_per_px=0.01, show=True):
         
         cv2.circle(img, (x, y), r, (0, 255, 0), 2)
         cv2.circle(img, (x, y), 2, (0, 0, 255), 3)
-
-        cv2.imshow("Detected Circle", img)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
-
+        
         return x_offset_in, y_offset_in, r
     
     return None, None, None
 
 def runPipeline(img, llrobot):
-    print(detect_and_visualize(img))
-
-image = cv2.imread("images/snap615424249719.png")
-runPipeline(image, [])
+    try:
+        center_x = img.shape[1] // 2
+        center_y = img.shape[0] // 2
+        cv2.circle(img, (center_x, center_y), 5, (255, 0, 0), -1)
+        
+        xOff, yOff, radius = detect_circles(img)
+        
+        if xOff is not None:
+            return np.array([[]]), img, [1.0, xOff, yOff, 0.0, 0.0, 0.0, 0.0, 0.0]
+        
+        return np.array([[]]), img, [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        
+    except Exception as e:
+        return np.array([[]]), img, [-1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
