@@ -16,7 +16,22 @@ inches2px = lambda inches: inches * 72.85714286
 px2inches = lambda px: px / 72.85714286
 
 # Regression for d(A); forward distance with respect to area; need to calculate this.
+# Need to compare area in in2 with distance in inches
 fdist = lambda A: A + 1
+
+# Do not include debug and draw in limelight. Delete all calls
+def debug(name, mask):
+    cv2.imshow(name, mask)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+
+def draw(img, x, y, r):
+    x = int(x)
+    y = int(y)
+    r = int(r)
+    cv2.circle(img, (x, y), r, (0, 255, 0), 2)
+    cv2.circle(img, (x, y), 2, (0, 0, 255), 3)
+    return img
 
 def canIntake(xOff_in, yOff_in, radius_in):
     area_in2 = math.pi * radius_in * radius_in
@@ -28,8 +43,8 @@ def detect(img, color):
     hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
 
     if color == GREEN:
-        green_lower = np.array([84, 230, 80], dtype="uint8")
-        green_upper = np.array([87, 255, 215], dtype="uint8")
+        green_lower = np.array([80, 230, 70], dtype="uint8")
+        green_upper = np.array([90, 255, 230], dtype="uint8")
         mask = cv2.inRange(hsv, green_lower, green_upper)
 
     if color == PURPLE:
@@ -38,7 +53,7 @@ def detect(img, color):
         mask = cv2.inRange(hsv, purple_lower, purple_upper)
 
     if color == BOTH:
-        green_lower = np.array([84, 230, 80], dtype="uint8")
+        green_lower = np.array([83, 220, 80], dtype="uint8")
         green_upper = np.array([87, 255, 215], dtype="uint8")
         mask_green = cv2.inRange(hsv, green_lower, green_upper)
 
@@ -48,6 +63,8 @@ def detect(img, color):
 
         mask = cv2.bitwise_or(mask_green, mask_purple)
         
+    debug("No Gaussian Blur", mask)
+    
     # may need to do more here due to masking
     ksize = 31
     borderType = cv2.BORDER_CONSTANT
@@ -55,6 +72,7 @@ def detect(img, color):
     kernel = np.ones((3, 3), np.uint8)
     mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel, iterations=1)
 
+    debug("Gaussian Blur", mask)
 
     circles = cv2.HoughCircles(
         mask,
@@ -85,7 +103,7 @@ def detect(img, color):
             dist_px = math.sqrt(x_offset_px ** 2 + y_offset_px ** 2)
             artifacts_found.append((dist_px, x_offset_in, y_offset_in, radius_in))
 
-        artifacts_found.sort(key=lambda t: t[0]) # maybe change for later(?)
+        artifacts_found.sort(key=lambda t: t[0]) # maybe change for later (?)
         _, xOff_in, yOff_in, radius_in = artifacts_found[0]
 
         area_in2 = math.pi * radius_in * radius_in
@@ -105,6 +123,8 @@ def runPipeline(img, llrobot):
             if xOff is not None:
                 intakeable = canIntake(xOff, yOff, radius)
                 returnType = 2.0 if intakeable else 1.0
+                print("xOff:", xOff, "yOff:", yOff, "radius:", radius)
+                img = draw(img, xOff, yOff, radius)
                 return np.array([[]]), img, [returnType, xOff, yOff, turn_angle, 0.0, 0.0, 0.0, 0.0]
 
             return np.array([[]]), img, [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
@@ -115,6 +135,8 @@ def runPipeline(img, llrobot):
             if xOff is not None:
                 intakeable = canIntake(xOff, yOff, radius)
                 returnType = 2.0 if intakeable else 1.0
+                print("xOff:", xOff, "yOff:", yOff, "radius:", radius)
+                img = draw(img, xOff, yOff, radius)
                 return np.array([[]]), img, [returnType, xOff, yOff, turn_angle, 0.0, 0.0, 0.0, 0.0]
 
             return np.array([[]]), img, [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
@@ -125,6 +147,8 @@ def runPipeline(img, llrobot):
             if xOff is not None:
                 intakeable = canIntake(xOff, yOff, radius)
                 returnType = 2.0 if intakeable else 1.0
+                print("xOff:", xOff, "yOff:", yOff, "radius:", radius)
+                img = draw(img, xOff, yOff, radius)
                 return np.array([[]]), img, [returnType, xOff, yOff, turn_angle, 0.0, 0.0, 0.0, 0.0]
 
             return np.array([[]]), img, [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
@@ -137,4 +161,5 @@ def runPipeline(img, llrobot):
 if __name__ == "__main__":
     img = cv2.imread("images/snap027998558882.png")
     llrobot = [0.0, 0.0, 1.0]
-    runPipeline(img, llrobot)
+    _, img, _ = runPipeline(img, llrobot)
+    debug("Detection", img)
