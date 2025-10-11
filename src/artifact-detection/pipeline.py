@@ -29,6 +29,7 @@ def draw(img, x, y, r):
     x = int(x)
     y = int(y)
     r = int(r)
+    print(f"Drawing at x={x}, y={y}, r={r}")
     cv2.circle(img, (x, y), r, (0, 255, 0), 2)
     cv2.circle(img, (x, y), 2, (0, 0, 255), 3)
     return img
@@ -57,7 +58,7 @@ def detect(img, color):
         green_upper = np.array([87, 255, 215], dtype="uint8")
         mask_green = cv2.inRange(hsv, green_lower, green_upper)
 
-        purple_lower = np.array([120, 100, 100], dtype="uint8")
+        purple_lower = np.array([252, 95.6, 71.4], dtype="uint8")
         purple_upper = np.array([150, 255, 255], dtype="uint8")
         mask_purple = cv2.inRange(hsv, purple_lower, purple_upper)
 
@@ -93,6 +94,9 @@ def detect(img, color):
         circles = np.round(circles[0, :]).astype("int")
 
         for (x, y, r) in circles:
+            x_in = px2inches(x)
+            y_in = px2inches(y)
+
             x_offset_px = x - center_x
             y_offset_px = y - center_y
 
@@ -101,16 +105,16 @@ def detect(img, color):
             radius_in = px2inches(r) 
 
             dist_px = math.sqrt(x_offset_px ** 2 + y_offset_px ** 2)
-            artifacts_found.append((dist_px, x_offset_in, y_offset_in, radius_in))
+            artifacts_found.append((dist_px, x_offset_in, y_offset_in, radius_in, x_in, y_in))
 
         artifacts_found.sort(key=lambda t: t[0]) # maybe change for later (?)
-        _, xOff_in, yOff_in, radius_in = artifacts_found[0]
+        _, xOff_in, yOff_in, radius_in, x_in, y_in = artifacts_found[0]
 
         area_in2 = math.pi * radius_in * radius_in
         distance_in = math.sqrt(xOff_in ** 2 + fdist(area_in2) ** 2)
         turn_angle = math.atan(xOff_in/distance_in) # how much turn is needed to face the artifact, radians
 
-        return xOff_in, yOff_in, radius_in, turn_angle
+        return x_in, y_in, xOff_in, yOff_in, radius_in, turn_angle
 
     return None, None, None, None
 
@@ -118,37 +122,37 @@ def detect(img, color):
 def runPipeline(img, llrobot):
     try:
         if llrobot[0] > 0.5:
-            xOff, yOff, radius, turn_angle = detect(img, GREEN)
+            x, y, xOff, yOff, radius, turn_angle = detect(img, GREEN)
 
             if xOff is not None:
                 intakeable = canIntake(xOff, yOff, radius)
                 returnType = 2.0 if intakeable else 1.0
-                print("xOff:", xOff, "yOff:", yOff, "radius:", radius)
-                img = draw(img, xOff, yOff, radius)
+                print("xOff_in:", xOff, "yOff_in:", yOff, "radius_in:", radius)
+                img = draw(img, inches2px(x), inches2px(y), inches2px(radius))
                 return np.array([[]]), img, [returnType, xOff, yOff, turn_angle, 0.0, 0.0, 0.0, 0.0]
 
             return np.array([[]]), img, [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
         if llrobot[1] > 0.5:
-            xOff, yOff, radius, turn_angle = detect(img, PURPLE)
+            x, y, xOff, yOff, radius, turn_angle = detect(img, PURPLE)
 
             if xOff is not None:
                 intakeable = canIntake(xOff, yOff, radius)
                 returnType = 2.0 if intakeable else 1.0
-                print("xOff:", xOff, "yOff:", yOff, "radius:", radius)
-                img = draw(img, xOff, yOff, radius)
+                print("xOff_in:", xOff, "yOff_in:", yOff, "radius_in:", radius)
+                img = draw(img, inches2px(x), inches2px(y), inches2px(radius))
                 return np.array([[]]), img, [returnType, xOff, yOff, turn_angle, 0.0, 0.0, 0.0, 0.0]
 
             return np.array([[]]), img, [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
         if llrobot[2] > 0.5:
-            xOff, yOff, radius, turn_angle = detect(img, BOTH)
+            x, y, xOff, yOff, radius, turn_angle = detect(img, BOTH)
 
             if xOff is not None:
                 intakeable = canIntake(xOff, yOff, radius)
                 returnType = 2.0 if intakeable else 1.0
-                print("xOff:", xOff, "yOff:", yOff, "radius:", radius)
-                img = draw(img, xOff, yOff, radius)
+                print("xOff_in:", xOff, "yOff_in:", yOff, "radius_in:", radius)
+                img = draw(img, inches2px(x), inches2px(y), inches2px(radius))
                 return np.array([[]]), img, [returnType, xOff, yOff, turn_angle, 0.0, 0.0, 0.0, 0.0]
 
             return np.array([[]]), img, [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]

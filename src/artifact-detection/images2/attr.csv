@@ -1,0 +1,11 @@
+id,light,exposure,blo,grain,red,blue,colors
+1,on,630,3,20,2110,858,both
+2,off,630,3,20,2110,858,both
+3,off,630,3,20,2110,858,green
+4,on,630,3,20,2110,858,green
+5,on,630,3,20,2110,858,purple
+6,off,630,3,20,2110,858,purple
+7,off,630,3,20,2110,858,green
+8,on,630,3,20,2110,858,green
+9,on,630,3,20,2110,858,purple
+10,off,630,3,20,2110,858,purple
