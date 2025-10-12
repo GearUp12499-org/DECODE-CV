@@ -11,7 +11,7 @@ GREEN = 0
 PURPLE = 1
 BOTH = 2
 GREEN_RANGE = [[60, 6, 99], [69, 245, 255]]
-PURPLE_RANGE = [[120, 100, 100], [150, 255, 255]]
+PURPLE_RANGE = [[147, 231, 85], [143, 112, 250]]
 
 
 # Conversions
@@ -78,6 +78,7 @@ def detect(img, color):
     
     debug("Gaussian Blur", mask)
 
+    """
     circles = cv2.HoughCircles(
         mask,
         cv2.HOUGH_GRADIENT,
@@ -88,10 +89,37 @@ def detect(img, color):
         minRadius=10,
         maxRadius=0
     )
+    """
+
+    # need some findContours algorithm with circles
+
+    cnts = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    cnts = cnts[0] if len(cnts) == 2 else cnts[1]
+
+    circles_list = []
+    for c in cnts:
+        peri = cv2.arcLength(c, True)
+        approx = cv2.approxPolyDP(c, 0.04 * peri, True)
+        
+        if len(approx) > 4 and len(c) >= 5:
+            try:
+                (xc, yc), (d1, d2), angle = cv2.fitEllipse(c)
+                
+                ratio = min(d1, d2) / max(d1, d2) if max(d1, d2) > 0 else 0
+                if ratio > 0.7:
+                    r = (d1 + d2) / 4
+                    if r >= 10:
+                        circles_list.append([xc, yc, r])
+            except:
+                pass
+
+    circles = None
+    if len(circles_list) > 0:
+        circles = np.array([circles_list])
 
     height, width = img.shape[:2]
     center_x = width // 2
-    center_y = height // 2
+    center_y = height // 2    
 
     if circles is not None:
         circles = np.round(circles[0, :]).astype("int")
@@ -171,7 +199,7 @@ def runPipeline(img, llrobot):
 
 # DO NOT INCLUDE IN LIMELIGHT
 if __name__ == "__main__":
-    img = cv2.imread("images2/8.png")
+    img = cv2.imread("images2/1.png")
     llrobot = [1.0, 0.0, 0.0]
     _, img, _ = runPipeline(img, llrobot)
     debug("Detection", img)
