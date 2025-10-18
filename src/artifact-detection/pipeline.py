@@ -45,8 +45,8 @@ def draw(img, x, y, r):
     return img
 
 def canIntake(xOff_in, yOff_in, radius_in):
-    area_in2 = math.pi * radius_in * radius_in
-    distance_in = math.sqrt(xOff_in ** 2 + fdist(area_in2) ** 2) # Might only care about fdist here.
+    area_in2 = np.pi * radius_in * radius_in
+    distance_in = np.sqrt(xOff_in ** 2 + fdist(area_in2) ** 2) # Might only care about fdist here.
     return distance_in < THRESHOLD
 
 def transform(mask):
@@ -135,13 +135,13 @@ def detect(img, color):
             y_offset_in = px2inches(y_offset_px)
             radius_in = px2inches(r) 
 
-            dist_px = math.sqrt(x_offset_px ** 2 + y_offset_px ** 2)
+            dist_px = np.sqrt(x_offset_px ** 2 + y_offset_px ** 2)
             artifacts_found.append((dist_px, x_offset_in, y_offset_in, radius_in, x_in, y_in, x, y, r))
 
         artifacts_found.sort(key=lambda t: t[0]) # maybe change for later (?)
         _, xOff_in, yOff_in, radius_in, x_in, y_in, x, y, r = artifacts_found[0]
 
-        area_in2 = math.pi * radius_in * radius_in
+        area_in2 = np.pi * radius_in * radius_in
 
         return x_in, y_in, xOff_in, yOff_in, radius_in, area_in2, x, y, r
 
@@ -159,8 +159,8 @@ def runPipeline(img, llrobot):
                 print("xOff_in:", xOff, "yOff_in:", yOff, "radius_in:", radius, "area_in2:", area_in2)
                 print("x:", x, "y:", y, "r:", r)
                 img = draw(img, x, y, r)
-                distance_in = math.sqrt(xOff ** 2 + fdist(area_in2) ** 2) # return this once formula is completed
-                turn_angle = math.atan(xOff/distance_in) # return this once formula is completed
+                distance_in = np.sqrt(xOff ** 2 + fdist(area_in2) ** 2) # return this once formula is completed
+                turn_angle = np.atan(xOff/distance_in) # return this once formula is completed
                 return np.array([[]]), img, [returnType, xOff, yOff, area_in2, 0.0, 0.0, 0.0, 0.0]
 
             return np.array([[]]), img, [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
@@ -174,8 +174,8 @@ def runPipeline(img, llrobot):
                 print("xOff_in:", xOff, "yOff_in:", yOff, "radius_in:", radius)
                 print("x:", x, "y:", y, "r:", r)
                 img = draw(img, x, y, r)
-                distance_in = math.sqrt(xOff_in ** 2 + fdist(area_in2) ** 2) # return this once formula is completed
-                turn_angle = math.atan(xOff_in/distance_in) # return this once formula is completed
+                distance_in = np.sqrt(xOff_in ** 2 + fdist(area_in2) ** 2) # return this once formula is completed
+                turn_angle = np.atan(xOff_in/distance_in) # return this once formula is completed
                 return np.array([[]]), img, [returnType, xOff, yOff, area_in2, 0.0, 0.0, 0.0, 0.0]
 
             return np.array([[]]), img, [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
@@ -189,8 +189,8 @@ def runPipeline(img, llrobot):
                 print("xOff_in:", xOff, "yOff_in:", yOff, "radius_in:", radius)
                 print("x:", x, "y:", y, "r:", r)
                 img = draw(img, x, y, r)
-                distance_in = math.sqrt(xOff_in ** 2 + fdist(area_in2) ** 2) # return this once formula is completed
-                turn_angle = math.atan(xOff_in/distance_in) # return this once formula is completed
+                distance_in = np.sqrt(xOff_in ** 2 + fdist(area_in2) ** 2) # return this once formula is completed
+                turn_angle = np.atan(xOff_in/distance_in) # return this once formula is completed
                 return np.array([[]]), img, [returnType, xOff, yOff, area_in2, 0.0, 0.0, 0.0, 0.0]
 
             return np.array([[]]), img, [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
