@@ -10,17 +10,23 @@ import os
 GREEN = 0
 PURPLE = 1
 BOTH = 2
-GREEN_RANGE = [[60, 6, 99], [69, 245, 255]]
-PURPLE_RANGE = [[147, 231, 85], [143, 112, 250]]
+GREEN_RANGE = [
+    [60, 6, 99],
+    [69, 245, 255]
+]
+PURPLE_RANGE = [ 
+    [138, 100, 40],
+    [160, 255, 255]
+]
 
 
-# Conversions
+# Formulas
 inches2px = lambda inches: inches * 72.85714286
 px2inches = lambda px: px / 72.85714286
+fdist = lambda A: A + 1
 
 # Regression for d(A); forward distance with respect to area; need to calculate this.
 # Need to compare area in in2 with distance in inches
-fdist = lambda A: A + 1
 
 # Do not include debug and draw in limelight. Delete all calls
 def debug(name, mask):
@@ -41,6 +47,17 @@ def canIntake(xOff_in, yOff_in, radius_in):
     area_in2 = math.pi * radius_in * radius_in
     distance_in = math.sqrt(xOff_in ** 2 + fdist(area_in2) ** 2)
     return distance_in < (1.0 + radius_in)
+
+def transform(mask):
+    # may need to do more here
+    ksize = 31
+    mask = cv2.erode(mask, np.ones((1, 1), np.uint8))
+    mask = cv2.GaussianBlur(mask, (ksize, ksize), 0) 
+    kernel = np.ones((3, 3), np.uint8)
+    threshold = 5
+    _, mask = cv2.threshold(mask, threshold, 255, cv2.THRESH_BINARY)
+    mask = cv2.erode(mask, np.ones((5, 5), np.uint8))
+    return mask
 
 def detect(img, color):
     artifacts_found = []
@@ -69,41 +86,21 @@ def detect(img, color):
         
     debug("No Gaussian Blur", mask)
     
-    # may need to do more here due to masking
-    ksize = 31
-    mask = cv2.GaussianBlur(mask, (ksize, ksize), 0) 
-    kernel = np.ones((3, 3), np.uint8)
-    threshold = 5
-    _, mask = cv2.threshold(mask, threshold, 255, cv2.THRESH_BINARY)
+    mask = transform(mask)
     
     debug("Gaussian Blur", mask)
 
-    """
-    circles = cv2.HoughCircles(
-        mask,
-        cv2.HOUGH_GRADIENT,
-        dp=1.2,
-        minDist=30,
-        param1=100,
-        param2=20,
-        minRadius=10,
-        maxRadius=0
-    )
-    """
-
-    # need some findContours algorithm with circles
-
-    cnts = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    cnts = cnts[0] if len(cnts) == 2 else cnts[1]
+    contours = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    contours = contours[0] if len(contours) == 2 else contours[1]
 
     circles_list = []
-    for c in cnts:
-        peri = cv2.arcLength(c, True)
-        approx = cv2.approxPolyDP(c, 0.04 * peri, True)
+    for contour in contours:
+        peri = cv2.arcLength(contour, True)
+        approx = cv2.approxPolyDP(contour, 0.04 * peri, True)
         
-        if len(approx) > 4 and len(c) >= 5:
+        if len(approx) > 4 and len(contour) >= 5:
             try:
-                (xc, yc), (d1, d2), angle = cv2.fitEllipse(c)
+                (xc, yc), (d1, d2), angle = cv2.fitEllipse(contour)
                 
                 ratio = min(d1, d2) / max(d1, d2) if max(d1, d2) > 0 else 0
                 if ratio > 0.7:
@@ -144,10 +141,8 @@ def detect(img, color):
         _, xOff_in, yOff_in, radius_in, x_in, y_in, x, y, r = artifacts_found[0]
 
         area_in2 = math.pi * radius_in * radius_in
-        distance_in = math.sqrt(xOff_in ** 2 + fdist(area_in2) ** 2)
-        turn_angle = math.atan(xOff_in/distance_in) # how much turn is needed to face the artifact, radians
 
-        return x_in, y_in, xOff_in, yOff_in, radius_in, turn_angle, x, y, r
+        return x_in, y_in, xOff_in, yOff_in, radius_in, area_in2, x, y, r
 
     return None, None, None, None, None, None, None, None, None
 
@@ -155,20 +150,22 @@ def detect(img, color):
 def runPipeline(img, llrobot):
     try:
         if llrobot[0] > 0.5:
-            x_in, y_in, xOff, yOff, radius, turn_angle, x, y, r = detect(img, GREEN)
+            x_in, y_in, xOff, yOff, radius, area_in2, x, y, r = detect(img, GREEN)
 
             if xOff is not None:
                 intakeable = canIntake(xOff, yOff, radius)
                 returnType = 2.0 if intakeable else 1.0
-                print("xOff_in:", xOff, "yOff_in:", yOff, "radius_in:", radius)
+                print("xOff_in:", xOff, "yOff_in:", yOff, "radius_in:", radius, "area_in2:", area_in2)
                 print("x:", x, "y:", y, "r:", r)
                 img = draw(img, x, y, r)
-                return np.array([[]]), img, [returnType, xOff, yOff, turn_angle, 0.0, 0.0, 0.0, 0.0]
+                distance_in = math.sqrt(xOff ** 2 + fdist(area_in2) ** 2) # return this once formula is completed
+                turn_angle = math.atan(xOff/distance_in) # return this once formula is completed
+                return np.array([[]]), img, [returnType, xOff, yOff, area_in2, 0.0, 0.0, 0.0, 0.0]
 
             return np.array([[]]), img, [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
         if llrobot[1] > 0.5:
-            x_in, y_in, xOff, yOff, radius, turn_angle, x, y, r = detect(img, PURPLE)
+            x_in, y_in, xOff, yOff, radius, area_in2, x, y, r = detect(img, PURPLE)
 
             if xOff is not None:
                 intakeable = canIntake(xOff, yOff, radius)
@@ -176,12 +173,14 @@ def runPipeline(img, llrobot):
                 print("xOff_in:", xOff, "yOff_in:", yOff, "radius_in:", radius)
                 print("x:", x, "y:", y, "r:", r)
                 img = draw(img, x, y, r)
-                return np.array([[]]), img, [returnType, xOff, yOff, turn_angle, 0.0, 0.0, 0.0, 0.0]
+                distance_in = math.sqrt(xOff_in ** 2 + fdist(area_in2) ** 2) # return this once formula is completed
+                turn_angle = math.atan(xOff_in/distance_in) # return this once formula is completed
+                return np.array([[]]), img, [returnType, xOff, yOff, area_in2, 0.0, 0.0, 0.0, 0.0]
 
             return np.array([[]]), img, [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
         if llrobot[2] > 0.5:
-            x_in, y_in, xOff, yOff, radius, turn_angle, x, y, r= detect(img, BOTH)
+            x_in, y_in, xOff, yOff, radius, area_in2, x, y, r= detect(img, BOTH)
 
             if xOff is not None:
                 intakeable = canIntake(xOff, yOff, radius)
@@ -189,7 +188,9 @@ def runPipeline(img, llrobot):
                 print("xOff_in:", xOff, "yOff_in:", yOff, "radius_in:", radius)
                 print("x:", x, "y:", y, "r:", r)
                 img = draw(img, x, y, r)
-                return np.array([[]]), img, [returnType, xOff, yOff, turn_angle, 0.0, 0.0, 0.0, 0.0]
+                distance_in = math.sqrt(xOff_in ** 2 + fdist(area_in2) ** 2) # return this once formula is completed
+                turn_angle = math.atan(xOff_in/distance_in) # return this once formula is completed
+                return np.array([[]]), img, [returnType, xOff, yOff, area_in2, 0.0, 0.0, 0.0, 0.0]
 
             return np.array([[]]), img, [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
