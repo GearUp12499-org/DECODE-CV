@@ -18,6 +18,7 @@ PURPLE_RANGE = [
     [138, 100, 40],
     [160, 255, 255]
 ]
+THRESHOLD = 6.7
 
 
 # Formulas
@@ -45,8 +46,8 @@ def draw(img, x, y, r):
 
 def canIntake(xOff_in, yOff_in, radius_in):
     area_in2 = math.pi * radius_in * radius_in
-    distance_in = math.sqrt(xOff_in ** 2 + fdist(area_in2) ** 2)
-    return distance_in < (1.0 + radius_in)
+    distance_in = math.sqrt(xOff_in ** 2 + fdist(area_in2) ** 2) # Might only care about fdist here.
+    return distance_in < THRESHOLD
 
 def transform(mask):
     # may need to do more here
