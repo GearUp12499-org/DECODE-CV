@@ -1,7 +1,6 @@
 import numpy as np
 import cv2
 import sys
-import math
 import os
 
 # Code looks a bit smaller; less work is needed due to not accounting for angles. Also may need to improve mask stuff
