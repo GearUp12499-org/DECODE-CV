@@ -1,7 +1,5 @@
 import numpy as np
 import cv2
-import sys
-import os
 
 # Code looks a bit smaller; less work is needed due to not accounting for angles. Also may need to improve mask stuff
 
@@ -23,16 +21,10 @@ THRESHOLD = 6.7
 # Formulas
 inches2px = lambda inches: inches * 72.85714286
 px2inches = lambda px: px / 72.85714286
-fdist = lambda A: A + 1
+fdist = lambda A: (np.log(A) / np.log(0.948304)) + 14.09375
 
 # Regression for d(A); forward distance with respect to area; need to calculate this.
 # Need to compare area in in2 with distance in inches
-
-# Do not include debug and draw in limelight. Delete all calls
-def debug(name, mask):
-    cv2.imshow(name, mask)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
 
 def draw(img, x, y, r):
     x = int(x)
@@ -83,13 +75,9 @@ def detect(img, color):
         mask_purple = cv2.inRange(hsv, purple_lower, purple_upper)
 
         mask = cv2.bitwise_or(mask_green, mask_purple)
-        
-    debug("No Gaussian Blur", mask)
     
     mask = transform(mask)
     
-    debug("Gaussian Blur", mask)
-
     contours = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     contours = contours[0] if len(contours) == 2 else contours[1]
 
@@ -148,6 +136,7 @@ def detect(img, color):
 
 
 def runPipeline(img, llrobot):
+    llrobot = [0.0, 0.0, 1.0]
     try:
         if llrobot[0] > 0.5:
             x_in, y_in, xOff, yOff, radius, area_in2, x, y, r = detect(img, GREEN)
@@ -155,11 +144,11 @@ def runPipeline(img, llrobot):
             if xOff is not None:
                 intakeable = canIntake(xOff, yOff, radius)
                 returnType = 2.0 if intakeable else 1.0
-                print("xOff_in:", xOff, "yOff_in:", yOff, "radius_in:", radius, "area_in2:", area_in2)
+                print("xOff_in:", xOff, "yOff_in:", yOff, "radius_in:", radius, "area_in2:", area_in2, "forward:", fdist(area_in2))
                 print("x:", x, "y:", y, "r:", r)
                 img = draw(img, x, y, r)
                 distance_in = np.sqrt(xOff ** 2 + fdist(area_in2) ** 2) # return this once formula is completed
-                turn_angle = np.atan2(xOff, distance_in) # return this once formula is completed
+                turn_angle = np.arctan2(xOff, distance_in) # return this once formula is completed
                 return np.array([[]]), img, [returnType, xOff, yOff, area_in2, 0.0, 0.0, 0.0, 0.0]
 
             return np.array([[]]), img, [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
@@ -173,14 +162,14 @@ def runPipeline(img, llrobot):
                 print("xOff_in:", xOff, "yOff_in:", yOff, "radius_in:", radius)
                 print("x:", x, "y:", y, "r:", r)
                 img = draw(img, x, y, r)
-                distance_in = np.sqrt(xOff  ** 2 + fdist(area_in2) ** 2) # return this once formula is completed
-                turn_angle = np.arctan(xOff, distance_in) # return this once formula is completed
+                distance_in = np.sqrt(xOff** 2 + fdist(area_in2) ** 2) # return this once formula is completed
+                turn_angle = np.arctan2(xOff, distance_in) # return this once formula is completed
                 return np.array([[]]), img, [returnType, xOff, yOff, area_in2, 0.0, 0.0, 0.0, 0.0]
 
             return np.array([[]]), img, [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
         if llrobot[2] > 0.5:
-            x_in, y_in, xOff, yOff, radius, area_in2, x, y, r= detect(img, BOTH)
+            x_in, y_in, xOff, yOff, radius, area_in2, x, y, r = detect(img, BOTH)
 
             if xOff is not None:
                 intakeable = canIntake(xOff, yOff, radius)
@@ -197,10 +186,3 @@ def runPipeline(img, llrobot):
     except Exception as e:
         print("Error in runPipeline:", e)
         return np.array([[]]), img, [-1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-
-# DO NOT INCLUDE IN LIMELIGHT
-if __name__ == "__main__":
-    img = cv2.imread("images2/1.png")
-    llrobot = [1.0, 0.0, 0.0]
-    _, img, _ = runPipeline(img, llrobot)
-    debug("Detection", img)
