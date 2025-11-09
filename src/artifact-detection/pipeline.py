@@ -158,8 +158,8 @@ def runPipeline(img, llrobot):
                 print("xOff_in:", xOff, "yOff_in:", yOff, "radius_in:", radius, "area_in2:", area_in2)
                 print("x:", x, "y:", y, "r:", r)
                 img = draw(img, x, y, r)
-                distance_in = np.sqrt(xOff ** 2 + fdist(area_in2) ** 2) # return this once formula is completed
-                turn_angle = np.atan2(xOff, distance_in) # return this once formula is completed
+                distance_in = np.sqrt(xOff ** 2 + fdist(area_in2) ** 2)
+                turn_angle = np.arctan2(xOff, distance_in)
                 return np.array([[]]), img, [returnType, xOff, yOff, area_in2, 0.0, 0.0, 0.0, 0.0]
 
             return np.array([[]]), img, [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
@@ -173,8 +173,8 @@ def runPipeline(img, llrobot):
                 print("xOff_in:", xOff, "yOff_in:", yOff, "radius_in:", radius)
                 print("x:", x, "y:", y, "r:", r)
                 img = draw(img, x, y, r)
-                distance_in = np.sqrt(xOff  ** 2 + fdist(area_in2) ** 2) # return this once formula is completed
-                turn_angle = np.arctan(xOff, distance_in) # return this once formula is completed
+                distance_in = np.sqrt(xOff  ** 2 + fdist(area_in2) ** 2)
+                turn_angle = np.arctan2(xOff, distance_in)
                 return np.array([[]]), img, [returnType, xOff, yOff, area_in2, 0.0, 0.0, 0.0, 0.0]
 
             return np.array([[]]), img, [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
@@ -188,8 +188,8 @@ def runPipeline(img, llrobot):
                 print("xOff_in:", xOff, "yOff_in:", yOff, "radius_in:", radius)
                 print("x:", x, "y:", y, "r:", r)
                 img = draw(img, x, y, r)
-                distance_in = np.sqrt(xOff ** 2 + fdist(area_in2) ** 2) # return this once formula is completed
-                turn_angle = np.arctan2(xOff, distance_in) # return this once formula is completed
+                distance_in = np.sqrt(xOff ** 2 + fdist(area_in2) ** 2)
+                turn_angle = np.arctan2(xOff, distance_in)
                 return np.array([[]]), img, [returnType, xOff, yOff, area_in2, 0.0, 0.0, 0.0, 0.0]
 
             return np.array([[]]), img, [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
@@ -200,7 +200,7 @@ def runPipeline(img, llrobot):
 
 # DO NOT INCLUDE IN LIMELIGHT
 if __name__ == "__main__":
-    img = cv2.imread("images2/1.png")
-    llrobot = [1.0, 0.0, 0.0]
+    img = cv2.imread("images2/5.png")
+    llrobot = [0.0, 1.0, 0.0]
     _, img, _ = runPipeline(img, llrobot)
     debug("Detection", img)
