@@ -19,7 +19,6 @@ PURPLE_RANGE = [
 ]
 THRESHOLD = 6.7
 
-
 # Formulas
 inches2px = lambda inches: inches * 72.85714286
 px2inches = lambda px: px / 72.85714286
@@ -59,6 +58,53 @@ def transform(mask):
     mask = cv2.erode(mask, np.ones((5, 5), np.uint8))
     return mask
 
+def fit_circle_ransac(points, max_iterations=1000, inlier_threshold=5.0, min_inliers=10):
+    best_circle = None
+    best_inliers = 0
+    points = points.reshape(-1, 2)
+    n_points = len(points)
+
+    if n_points < 3:
+        return None
+
+    for _ in range(max_iterations):
+        idx = np.random.choice(n_points, 3, replace=False)
+        p1, p2, p3 = points[idx]
+
+        A = np.array([p1, p2, p3])
+        try:
+            m1 = (p1 + p2) / 2
+            m2 = (p2 + p3) / 2
+            d1 = -(p2[0] - p1[0]) / (p2[1] - p1[1]) if p2[1] != p1[1] else np.inf
+            d2 = -(p3[0] - p2[0]) / (p3[1] - p2[1]) if p3[1] != p2[1] else np.inf
+
+            if np.isinf(d1) and np.isinf(d2) or abs(d1 - d2) < 1e-6:
+                continue
+
+            if np.isinf(d1):
+                xc = m1[0]
+                yc = d2 * (xc - m2[0]) + m2[1]
+            elif np.isinf(d2):
+                xc = m2[0]
+                yc = d1 * (xc - m1[0]) + m1[1]
+            else:
+                xc = (d1 * m1[0] - d2 * m2[0] + m2[1] - m1[1]) / (d1 - d2)
+                yc = d1 * (xc - m1[0]) + m1[1]
+
+            r = np.sqrt((p1[0] - xc)**2 + (p1[1] - yc)**2)
+
+            distances = np.sqrt((points[:, 0] - xc)**2 + (points[:, 1] - yc)**2)
+            inliers = np.sum(np.abs(distances - r) < inlier_threshold)
+
+            if inliers > best_inliers and inliers >= min_inliers:
+                best_inliers = inliers
+                best_circle = (xc, yc, r)
+
+        except Exception:
+            continue
+
+    return best_circle
+
 def detect(img, color):
     artifacts_found = []
     hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
@@ -95,20 +141,22 @@ def detect(img, color):
 
     circles_list = []
     for contour in contours:
-        peri = cv2.arcLength(contour, True)
-        approx = cv2.approxPolyDP(contour, 0.04 * peri, True)
+        if len(contour) < 6:
+            continue
+
+        circle = fit_circle_ransac(contour, max_iterations=1000, inlier_threshold=5.0, min_inliers=10)
+        if circle is None:
+            continue
+
+        xc, yc, r = circle
         
-        if len(approx) > 4 and len(contour) >= 5:
-            try:
-                (xc, yc), (d1, d2), angle = cv2.fitEllipse(contour)
-                
-                ratio = min(d1, d2) / max(d1, d2) if max(d1, d2) > 0 else 0
-                if ratio > 0.7:
-                    r = (d1 + d2) / 4
-                    if r >= 10:
-                        circles_list.append([xc, yc, r])
-            except:
-                pass
+        if r < 85:
+            continue
+
+        circles_list.append([xc, yc, r])
+
+        cv2.circle(img, (int(xc), int(yc)), int(r), (0, 255, 0), 2)
+        cv2.circle(img, (int(xc), int(yc)), 3, (0, 0, 255), -1)
 
     circles = None
     if len(circles_list) > 0:
@@ -200,7 +248,7 @@ def runPipeline(img, llrobot):
 
 # DO NOT INCLUDE IN LIMELIGHT
 if __name__ == "__main__":
-    img = cv2.imread("images2/5.png")
-    llrobot = [0.0, 1.0, 0.0]
+    img = cv2.imread("images3/6.png")
+    llrobot = [1.0, 0.0, 0.0]
     _, img, _ = runPipeline(img, llrobot)
     debug("Detection", img)
