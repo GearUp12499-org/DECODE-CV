@@ -1,5 +1,7 @@
 import numpy as np
 import cv2
+import sys
+import os
 
 # Code looks a bit smaller; less work is needed due to not accounting for angles. Also may need to improve mask stuff
 
@@ -15,16 +17,15 @@ PURPLE_RANGE = [
     [138, 100, 40],
     [160, 255, 255]
 ]
-THRESHOLD = 6.7
-
+THRESHOLD_FDIST = 0.1 # inches threshold for the limelight to signal that intake can start spinning
+THRESHOLD_ANGLE = 15 # degree magnitude 
 
 # Formulas
 inches2px = lambda inches: inches * 72.85714286
 px2inches = lambda px: px / 72.85714286
-fdist = lambda A: (np.log(A) / np.log(0.948304)) + 14.09375
+fd = lambda r: 23.38333 * pow(0.989816, r) -3.15906
 
-# Regression for d(A); forward distance with respect to area; need to calculate this.
-# Need to compare area in in2 with distance in inches
+# Regression for fd(r); forward distance with respect to pixel radius
 
 def draw(img, x, y, r):
     x = int(x)
@@ -35,10 +36,11 @@ def draw(img, x, y, r):
     cv2.circle(img, (x, y), 2, (0, 0, 255), 3)
     return img
 
-def canIntake(xOff_in, yOff_in, radius_in):
-    area_in2 = np.pi * radius_in * radius_in
-    distance_in = np.sqrt(xOff_in ** 2 + fdist(area_in2) ** 2) # Might only care about fdist here.
-    return distance_in < THRESHOLD
+def canIntake(xOff_in, yOff_in, radius_px):
+    forward = fd(radius_px)
+    distance_in = np.sqrt(xOff_in ** 2 + forward ** 2)
+    turn_angle = np.arctan2(xOff_in, forward)
+    return forward < THRESHOLD_FDIST and abs(turn_angle) < THRESHOLD_ANGLE, turn_angle
 
 def transform(mask):
     # may need to do more here
@@ -50,6 +52,53 @@ def transform(mask):
     _, mask = cv2.threshold(mask, threshold, 255, cv2.THRESH_BINARY)
     mask = cv2.erode(mask, np.ones((5, 5), np.uint8))
     return mask
+
+def fit_circle_ransac(points, max_iterations=1000, inlier_threshold=5.0, min_inliers=10):
+    best_circle = None
+    best_inliers = 0
+    points = points.reshape(-1, 2)
+    n_points = len(points)
+
+    if n_points < 3:
+        return None
+
+    for _ in range(max_iterations):
+        idx = np.random.choice(n_points, 3, replace=False)
+        p1, p2, p3 = points[idx]
+
+        A = np.array([p1, p2, p3])
+        try:
+            m1 = (p1 + p2) / 2
+            m2 = (p2 + p3) / 2
+            d1 = -(p2[0] - p1[0]) / (p2[1] - p1[1]) if p2[1] != p1[1] else np.inf
+            d2 = -(p3[0] - p2[0]) / (p3[1] - p2[1]) if p3[1] != p2[1] else np.inf
+
+            if np.isinf(d1) and np.isinf(d2) or abs(d1 - d2) < 1e-6:
+                continue
+
+            if np.isinf(d1):
+                xc = m1[0]
+                yc = d2 * (xc - m2[0]) + m2[1]
+            elif np.isinf(d2):
+                xc = m2[0]
+                yc = d1 * (xc - m1[0]) + m1[1]
+            else:
+                xc = (d1 * m1[0] - d2 * m2[0] + m2[1] - m1[1]) / (d1 - d2)
+                yc = d1 * (xc - m1[0]) + m1[1]
+
+            r = np.sqrt((p1[0] - xc)**2 + (p1[1] - yc)**2)
+
+            distances = np.sqrt((points[:, 0] - xc)**2 + (points[:, 1] - yc)**2)
+            inliers = np.sum(np.abs(distances - r) < inlier_threshold)
+
+            if inliers > best_inliers and inliers >= min_inliers:
+                best_inliers = inliers
+                best_circle = (xc, yc, r)
+
+        except Exception:
+            continue
+
+    return best_circle
 
 def detect(img, color):
     artifacts_found = []
@@ -83,20 +132,22 @@ def detect(img, color):
 
     circles_list = []
     for contour in contours:
-        peri = cv2.arcLength(contour, True)
-        approx = cv2.approxPolyDP(contour, 0.04 * peri, True)
+        if len(contour) < 6:
+            continue
+
+        circle = fit_circle_ransac(contour, max_iterations=1000, inlier_threshold=5.0, min_inliers=10)
+        if circle is None:
+            continue
+
+        xc, yc, r = circle
         
-        if len(approx) > 4 and len(contour) >= 5:
-            try:
-                (xc, yc), (d1, d2), angle = cv2.fitEllipse(contour)
-                
-                ratio = min(d1, d2) / max(d1, d2) if max(d1, d2) > 0 else 0
-                if ratio > 0.7:
-                    r = (d1 + d2) / 4
-                    if r >= 10:
-                        circles_list.append([xc, yc, r])
-            except:
-                pass
+        if r < 85:
+            continue
+
+        circles_list.append([xc, yc, r])
+
+        cv2.circle(img, (int(xc), int(yc)), int(r), (0, 255, 0), 2)
+        cv2.circle(img, (int(xc), int(yc)), 3, (0, 0, 255), -1)
 
     circles = None
     if len(circles_list) > 0:
@@ -125,64 +176,60 @@ def detect(img, color):
             dist_px = np.sqrt(x_offset_px ** 2 + y_offset_px ** 2)
             artifacts_found.append((dist_px, x_offset_in, y_offset_in, radius_in, x_in, y_in, x, y, r))
 
-        artifacts_found.sort(key=lambda t: t[0]) # maybe change for later (?)
+        artifacts_found.sort(key=lambda t: t[0])
         _, xOff_in, yOff_in, radius_in, x_in, y_in, x, y, r = artifacts_found[0]
 
-        area_in2 = np.pi * radius_in * radius_in
-
-        return x_in, y_in, xOff_in, yOff_in, radius_in, area_in2, x, y, r
+        return x_in, y_in, xOff_in, yOff_in, radius_in, x, y, r
 
     return None, None, None, None, None, None, None, None, None
 
 
 def runPipeline(img, llrobot):
-    llrobot = [0.0, 0.0, 1.0]
     try:
         if llrobot[0] > 0.5:
-            x_in, y_in, xOff, yOff, radius, area_in2, x, y, r = detect(img, GREEN)
+            x_in, y_in, xOff, yOff, radius, x, y, r = detect(img, GREEN)
 
             if xOff is not None:
-                intakeable = canIntake(xOff, yOff, radius)
+                intakeable, turn_angle = canIntake(xOff, yOff, r)
                 returnType = 2.0 if intakeable else 1.0
-                print("xOff_in:", xOff, "yOff_in:", yOff, "radius_in:", radius, "area_in2:", area_in2, "forward:", fdist(area_in2))
+                forward = fd(r)
+                print("xOff_in:", xOff, "yOff_in:", yOff, "radius_in:", radius, "forward_in:", forward)
                 print("x:", x, "y:", y, "r:", r)
                 img = draw(img, x, y, r)
-                distance_in = np.sqrt(xOff ** 2 + fdist(area_in2) ** 2) # return this once formula is completed
-                turn_angle = np.arctan2(xOff, distance_in) # return this once formula is completed
-                return np.array([[]]), img, [returnType, xOff, yOff, area_in2, 0.0, 0.0, 0.0, 0.0]
+                return np.array([[]]), img, [returnType, xOff, yOff, forward, turn_angle, 0.0, 0.0, 0.0] # SIG --> 2, intakeable; 1, not intakeable
 
-            return np.array([[]]), img, [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+            return np.array([[]]), img, [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0] # SIG --> 0, nothing
 
         if llrobot[1] > 0.5:
-            x_in, y_in, xOff, yOff, radius, area_in2, x, y, r = detect(img, PURPLE)
+            x_in, y_in, xOff, yOff, radius, x, y, r = detect(img, PURPLE)
 
             if xOff is not None:
-                intakeable = canIntake(xOff, yOff, radius)
+                intakeable, turn_angle = canIntake(xOff, yOff, r)
                 returnType = 2.0 if intakeable else 1.0
-                print("xOff_in:", xOff, "yOff_in:", yOff, "radius_in:", radius)
+                forward = fd(r)
+                print("xOff_in:", xOff, "yOff_in:", yOff, "radius_in:", radius, "forward_in:", forward)
                 print("x:", x, "y:", y, "r:", r)
                 img = draw(img, x, y, r)
-                distance_in = np.sqrt(xOff** 2 + fdist(area_in2) ** 2) # return this once formula is completed
-                turn_angle = np.arctan2(xOff, distance_in) # return this once formula is completed
-                return np.array([[]]), img, [returnType, xOff, yOff, area_in2, 0.0, 0.0, 0.0, 0.0]
+                return np.array([[]]), img, [returnType, xOff, yOff, forward, turn_angle, 0.0, 0.0, 0.0] # SIG --> 2, intakeable; 1, not intakeable
 
-            return np.array([[]]), img, [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+            return np.array([[]]), img, [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0] # SIG --> 0, nothing
 
         if llrobot[2] > 0.5:
-            x_in, y_in, xOff, yOff, radius, area_in2, x, y, r = detect(img, BOTH)
+            x_in, y_in, xOff, yOff, radius, x, y, r = detect(img, BOTH)
 
             if xOff is not None:
-                intakeable = canIntake(xOff, yOff, radius)
+                intakeable, turn_angle = canIntake(xOff, yOff, r)
                 returnType = 2.0 if intakeable else 1.0
-                print("xOff_in:", xOff, "yOff_in:", yOff, "radius_in:", radius)
+                forward = fd(r)
+                print("xOff_in:", xOff, "yOff_in:", yOff, "radius_in:", radius, "forward_in:", forward)
                 print("x:", x, "y:", y, "r:", r)
                 img = draw(img, x, y, r)
-                distance_in = np.sqrt(xOff ** 2 + fdist(area_in2) ** 2) # return this once formula is completed
-                turn_angle = np.arctan2(xOff, distance_in) # return this once formula is completed
-                return np.array([[]]), img, [returnType, xOff, yOff, area_in2, 0.0, 0.0, 0.0, 0.0]
+                distance_in = np.sqrt(xOff ** 2 + fd(r) ** 2)
+                turn_angle = np.arctan2(xOff, distance_in)
+                return np.array([[]]), img, [returnType, xOff, yOff, forward, turn_angle, 0.0, 0.0, 0.0] # SIG --> 2, intakeable; 1, not intakeable
 
-            return np.array([[]]), img, [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+            return np.array([[]]), img, [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0] # SIG --> 0, nothing
 
     except Exception as e:
         print("Error in runPipeline:", e)
-        return np.array([[]]), img, [-1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        return np.array([[]]), img, [-1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0] # SIG --> -1, error occured
