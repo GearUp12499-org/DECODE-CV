@@ -44,9 +44,9 @@ def draw(img, x, y, r):
 
 def canIntake(xOff_in, yOff_in, radius_px):
     forward = fd(radius_px)
-    distance_in = np.sqrt(xOff_in ** 2 + fd(radius_px) ** 2) # Might only care about fdist here.
+    distance_in = np.sqrt(xOff_in ** 2 + forward ** 2)
     turn_angle = np.arctan2(xOff_in, forward)
-    return forward < THRESHOLD_FDIST and turn_angle < THRESHOLD_ANGLE 
+    return forward < THRESHOLD_FDIST and abs(turn_angle) < THRESHOLD_ANGLE, turn_angle
 
 def transform(mask):
     # may need to do more here
@@ -200,13 +200,13 @@ def runPipeline(img, llrobot):
             x_in, y_in, xOff, yOff, radius, x, y, r = detect(img, GREEN)
 
             if xOff is not None:
-                intakeable = canIntake(xOff, yOff, r)
+                intakeable, turn_angle = canIntake(xOff, yOff, r)
                 returnType = 2.0 if intakeable else 1.0
                 forward = fd(r)
-                print("xOff_in:", xOff, "yOff_in:", yOff, "radius_in:", radius, "forward_in", forward)
+                print("xOff_in:", xOff, "yOff_in:", yOff, "radius_in:", radius, "forward_in:", forward)
                 print("x:", x, "y:", y, "r:", r)
                 img = draw(img, x, y, r)
-                return np.array([[]]), img, [returnType, xOff, yOff, forward, 0.0, 0.0, 0.0, 0.0] # SIG --> 2, intakeable; 1, not intakeable
+                return np.array([[]]), img, [returnType, xOff, yOff, forward, turn_angle, 0.0, 0.0, 0.0] # SIG --> 2, intakeable; 1, not intakeable
 
             return np.array([[]]), img, [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0] # SIG --> 0, nothing
 
@@ -214,13 +214,13 @@ def runPipeline(img, llrobot):
             x_in, y_in, xOff, yOff, radius, x, y, r = detect(img, PURPLE)
 
             if xOff is not None:
-                intakeable = canIntake(xOff, yOff, r)
+                intakeable, turn_angle = canIntake(xOff, yOff, r)
                 returnType = 2.0 if intakeable else 1.0
                 forward = fd(r)
-                print("xOff_in:", xOff, "yOff_in:", yOff, "radius_in:", radius, "forward_in", forward)
+                print("xOff_in:", xOff, "yOff_in:", yOff, "radius_in:", radius, "forward_in:", forward)
                 print("x:", x, "y:", y, "r:", r)
                 img = draw(img, x, y, r)
-                return np.array([[]]), img, [returnType, xOff, yOff, forward, 0.0, 0.0, 0.0, 0.0] # SIG --> 2, intakeable; 1, not intakeable
+                return np.array([[]]), img, [returnType, xOff, yOff, forward, turn_angle, 0.0, 0.0, 0.0] # SIG --> 2, intakeable; 1, not intakeable
 
             return np.array([[]]), img, [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0] # SIG --> 0, nothing
 
@@ -228,15 +228,15 @@ def runPipeline(img, llrobot):
             x_in, y_in, xOff, yOff, radius, x, y, r = detect(img, BOTH)
 
             if xOff is not None:
-                intakeable = canIntake(xOff, yOff, r)
+                intakeable, turn_angle = canIntake(xOff, yOff, r)
                 returnType = 2.0 if intakeable else 1.0
                 forward = fd(r)
-                print("xOff_in:", xOff, "yOff_in:", yOff, "radius_in:", radius, "forward_in", forward)
+                print("xOff_in:", xOff, "yOff_in:", yOff, "radius_in:", radius, "forward_in:", forward)
                 print("x:", x, "y:", y, "r:", r)
                 img = draw(img, x, y, r)
                 distance_in = np.sqrt(xOff ** 2 + fd(r) ** 2)
                 turn_angle = np.arctan2(xOff, distance_in)
-                return np.array([[]]), img, [returnType, xOff, yOff, forward, 0.0, 0.0, 0.0, 0.0] # SIG --> 2, intakeable; 1, not intakeable
+                return np.array([[]]), img, [returnType, xOff, yOff, forward, turn_angle, 0.0, 0.0, 0.0] # SIG --> 2, intakeable; 1, not intakeable
 
             return np.array([[]]), img, [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0] # SIG --> 0, nothing
 
@@ -246,7 +246,7 @@ def runPipeline(img, llrobot):
 
 # DO NOT INCLUDE IN LIMELIGHT
 if __name__ == "__main__":
-    img = cv2.imread("images3/5.png")
+    img = cv2.imread("images3/19.png")
     llrobot = [1.0, 0.0, 0.0]
     _, img, _ = runPipeline(img, llrobot)
     debug("Detection", img)
