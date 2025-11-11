@@ -11,11 +11,11 @@ PURPLE = 1
 BOTH = 2
 GREEN_RANGE = [
     [60, 6, 99],
-    [69, 245, 255]
+    [90, 245, 255]
 ]
 PURPLE_RANGE = [ 
     [138, 100, 40],
-    [160, 255, 255]
+    [168, 255, 255]
 ]
 THRESHOLD_FDIST = 0.1 # inches threshold for the limelight to signal that intake can start spinning
 THRESHOLD_ANGLE = 15 # degree magnitude 
@@ -191,7 +191,7 @@ def detect(img, color):
 
         return x_in, y_in, xOff_in, yOff_in, radius_in, x, y, r
 
-    return None, None, None, None, None, None, None, None, None
+    return None, None, None, None, None, None, None, None
 
 
 def runPipeline(img, llrobot):
@@ -246,7 +246,7 @@ def runPipeline(img, llrobot):
 
 # DO NOT INCLUDE IN LIMELIGHT
 if __name__ == "__main__":
-    img = cv2.imread("images3/19.png")
+    img = cv2.imread("images3/18.png")
     llrobot = [1.0, 0.0, 0.0]
     _, img, _ = runPipeline(img, llrobot)
     debug("Detection", img)
