@@ -59,7 +59,7 @@ def transform(mask):
     mask = cv2.erode(mask, np.ones((5, 5), np.uint8))
     return mask
 
-def fit_circle_ransac(points, max_iterations=1000, inlier_threshold=5.0, min_inliers=10):
+def find_circle_ransac(points, max_iterations=1000, inlier_threshold=5.0, min_inliers=10):
     best_circle = None
     best_inliers = 0
     points = points.reshape(-1, 2)
@@ -145,7 +145,7 @@ def detect(img, color):
         if len(contour) < 6:
             continue
 
-        circle = fit_circle_ransac(contour, max_iterations=1000, inlier_threshold=5.0, min_inliers=10)
+        circle = find_circle_ransac(contour, max_iterations=1000, inlier_threshold=5.0, min_inliers=10)
         if circle is None:
             continue
 
