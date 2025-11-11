@@ -24,8 +24,9 @@ THRESHOLD_ANGLE = 15 # degree magnitude
 inches2px = lambda inches: inches * 72.85714286
 px2inches = lambda px: px / 72.85714286
 fd = lambda r: 23.38333 * pow(0.989816, r) -3.15906
+turn = lambda xOff_in, radius_px: np.degrees(np.arctan2(xOff_in, fd(radius_px)))
 
-# Regression for fd(r); forward distance with respect to pixel radius
+# Regression for fd(r); forward distance in inches with respect to pixel radius
 
 # Do not include debug and draw in limelight. Delete all calls
 def debug(name, mask):
@@ -42,14 +43,7 @@ def draw(img, x, y, r):
     cv2.circle(img, (x, y), 2, (0, 0, 255), 3)
     return img
 
-def canIntake(xOff_in, yOff_in, radius_px):
-    forward = fd(radius_px)
-    distance_in = np.sqrt(xOff_in ** 2 + forward ** 2)
-    turn_angle = np.arctan2(xOff_in, forward)
-    return forward < THRESHOLD_FDIST and abs(turn_angle) < THRESHOLD_ANGLE, turn_angle
-
 def transform(mask):
-    # may need to do more here
     ksize = 31
     mask = cv2.erode(mask, np.ones((1, 1), np.uint8))
     mask = cv2.GaussianBlur(mask, (ksize, ksize), 0) 
@@ -200,13 +194,13 @@ def runPipeline(img, llrobot):
             x_in, y_in, xOff, yOff, radius, x, y, r = detect(img, GREEN)
 
             if xOff is not None:
-                intakeable, turn_angle = canIntake(xOff, yOff, r)
-                returnType = 2.0 if intakeable else 1.0
+                angle = turn(xOff, r)
+                returnType = 1.0 # I see something
                 forward = fd(r)
-                print("xOff_in:", xOff, "yOff_in:", yOff, "radius_in:", radius, "forward_in:", forward)
+                print("xOff_in:", xOff, "yOff_in:", yOff, "radius_in:", radius, "forward_in:", forward, "angle", angle)
                 print("x:", x, "y:", y, "r:", r)
                 img = draw(img, x, y, r)
-                return np.array([[]]), img, [returnType, xOff, yOff, forward, turn_angle, 0.0, 0.0, 0.0] # SIG --> 2, intakeable; 1, not intakeable
+                return np.array([[]]), img, [returnType, xOff, yOff, forward, angle, 0.0, 0.0, 0.0] # SIG --> 2, intakeable; 1, not intakeable
 
             return np.array([[]]), img, [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0] # SIG --> 0, nothing
 
@@ -214,13 +208,13 @@ def runPipeline(img, llrobot):
             x_in, y_in, xOff, yOff, radius, x, y, r = detect(img, PURPLE)
 
             if xOff is not None:
-                intakeable, turn_angle = canIntake(xOff, yOff, r)
-                returnType = 2.0 if intakeable else 1.0
+                angle = turn(xOff, r)
+                returnType = 1.0
                 forward = fd(r)
-                print("xOff_in:", xOff, "yOff_in:", yOff, "radius_in:", radius, "forward_in:", forward)
+                print("xOff_in:", xOff, "yOff_in:", yOff, "radius_in:", radius, "forward_in:", forward, "angle", angle)
                 print("x:", x, "y:", y, "r:", r)
                 img = draw(img, x, y, r)
-                return np.array([[]]), img, [returnType, xOff, yOff, forward, turn_angle, 0.0, 0.0, 0.0] # SIG --> 2, intakeable; 1, not intakeable
+                return np.array([[]]), img, [returnType, xOff, yOff, forward, angle, 0.0, 0.0, 0.0] # SIG --> 2, intakeable; 1, not intakeable
 
             return np.array([[]]), img, [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0] # SIG --> 0, nothing
 
@@ -228,15 +222,13 @@ def runPipeline(img, llrobot):
             x_in, y_in, xOff, yOff, radius, x, y, r = detect(img, BOTH)
 
             if xOff is not None:
-                intakeable, turn_angle = canIntake(xOff, yOff, r)
-                returnType = 2.0 if intakeable else 1.0
+                angle = turn(xOff, r)
+                returnType = 1.0
                 forward = fd(r)
-                print("xOff_in:", xOff, "yOff_in:", yOff, "radius_in:", radius, "forward_in:", forward)
+                print("xOff_in:", xOff, "yOff_in:", yOff, "radius_in:", radius, "forward_in:", forward, "angle", angle)
                 print("x:", x, "y:", y, "r:", r)
                 img = draw(img, x, y, r)
-                distance_in = np.sqrt(xOff ** 2 + fd(r) ** 2)
-                turn_angle = np.arctan2(xOff, distance_in)
-                return np.array([[]]), img, [returnType, xOff, yOff, forward, turn_angle, 0.0, 0.0, 0.0] # SIG --> 2, intakeable; 1, not intakeable
+                return np.array([[]]), img, [returnType, xOff, yOff, forward, angle, 0.0, 0.0, 0.0] # SIG --> 2, intakeable; 1, not intakeable
 
             return np.array([[]]), img, [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0] # SIG --> 0, nothing
 
@@ -246,7 +238,7 @@ def runPipeline(img, llrobot):
 
 # DO NOT INCLUDE IN LIMELIGHT
 if __name__ == "__main__":
-    img = cv2.imread("images3/18.png")
+    img = cv2.imread("images3/9.png")
     llrobot = [1.0, 0.0, 0.0]
     _, img, _ = runPipeline(img, llrobot)
     debug("Detection", img)
