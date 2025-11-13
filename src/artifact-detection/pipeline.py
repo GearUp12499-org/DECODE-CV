@@ -10,7 +10,7 @@ GREEN = 0
 PURPLE = 1
 BOTH = 2
 GREEN_RANGE = [
-    [60, 6, 99],
+    [54, 6, 99],
     [90, 245, 255]
 ]
 PURPLE_RANGE = [ 
@@ -45,7 +45,7 @@ def draw(img, x, y, r):
 
 def transform(mask):
     ksize = 31
-    mask = cv2.erode(mask, np.ones((1, 1), np.uint8))
+    mask = cv2.erode(mask, np.ones((2, 2), np.uint8))
     mask = cv2.GaussianBlur(mask, (ksize, ksize), 0) 
     kernel = np.ones((3, 3), np.uint8)
     threshold = 5
@@ -238,7 +238,7 @@ def runPipeline(img, llrobot):
 
 # DO NOT INCLUDE IN LIMELIGHT
 if __name__ == "__main__":
-    img = cv2.imread("images3/9.png")
+    img = cv2.imread("images3/21.png")
     llrobot = [1.0, 0.0, 0.0]
     _, img, _ = runPipeline(img, llrobot)
     debug("Detection", img)
