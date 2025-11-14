@@ -47,7 +47,7 @@ def transform(mask):
     gse = lambda x, y: cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (x, y))
     mask = cv2.dilate(mask, gse(3,3), iterations=1)
     mask = cv2.medianBlur(mask, 5)
-    debug("Erode", mask)
+    debug("Dilation + Median", mask)
     mask = cv2.GaussianBlur(mask, (ksize, ksize), 1)
     _, mask = cv2.threshold(mask, 5, 255, cv2.THRESH_BINARY)
     mask = cv2.erode(mask, gse(6,6), iterations=1)
