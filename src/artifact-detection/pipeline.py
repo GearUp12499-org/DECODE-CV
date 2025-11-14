@@ -22,7 +22,7 @@ THRESHOLD_FDIST = 0.1 # inches threshold for the limelight to signal that intake
 # Formulas
 inches2px = lambda inches: inches * 72.85714286
 px2inches = lambda px: px / 72.85714286
-fd = lambda r: 23.38333 * pow(0.989816, r) -3.15906
+fd = lambda r: (64.83671 / ((0.0263005*r) + 1.71293)) - 9.96142
 turn = lambda xOff_in, radius_px: np.degrees(np.arctan2(xOff_in, fd(radius_px)))
 
 # Regression for fd(r); forward distance in inches with respect to pixel radius
@@ -248,7 +248,7 @@ if __name__ == "__main__":
             _, img, _ = runPipeline(img, llrobot)
             debug(f"Detection {i}", img)
     else:
-        img = cv2.imread(f"images3/14.png")
+        img = cv2.imread(f"images3/30.png")
         llrobot = [1.0, 0.0, 0.0]
         _, img, _ = runPipeline(img, llrobot)
         debug("Detection", img)
