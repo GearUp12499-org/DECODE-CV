@@ -242,7 +242,7 @@ def runPipeline(img, llrobot):
 if __name__ == "__main__":
     mode = 0
     if mode == 0:
-        for i in range(1, 30):
+        for i in range(1, 31):
             img = cv2.imread(f"images3/{i}.png")
             llrobot = [1.0, 0.0, 0.0]
             _, img, _ = runPipeline(img, llrobot)
