@@ -10,8 +10,8 @@ GREEN = 0
 PURPLE = 1
 BOTH = 2
 GREEN_RANGE = [
-    [54, 6, 99],
-    [90, 245, 255]
+    [40, 30, 80],
+    [98, 245, 255]
 ]
 PURPLE_RANGE = [ 
     [138, 100, 40],
@@ -37,19 +37,22 @@ def draw(img, x, y, r):
     x = int(x)
     y = int(y)
     r = int(r)
-    print(f"Drawing at x={x}, y={y}, r={r}")
+    print(f"Drawing at (x = {x}, y = {y}, r = {r})")
     cv2.circle(img, (x, y), r, (0, 255, 0), 2)
     cv2.circle(img, (x, y), 2, (0, 0, 255), 3)
     return img
 
 def transform(mask):
     ksize = 31
-    mask = cv2.erode(mask, np.ones((2, 2), np.uint8))
-    mask = cv2.GaussianBlur(mask, (ksize, ksize), 0) 
-    kernel = np.ones((3, 3), np.uint8)
-    threshold = 5
-    _, mask = cv2.threshold(mask, threshold, 255, cv2.THRESH_BINARY)
-    mask = cv2.erode(mask, np.ones((5, 5), np.uint8))
+    gse = lambda x, y: cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (x, y))
+    mask = cv2.dilate(mask, gse(3,3), iterations=1)
+    mask = cv2.medianBlur(mask, 5)
+    debug("Erode", mask)
+    mask = cv2.GaussianBlur(mask, (ksize, ksize), 1)
+    _, mask = cv2.threshold(mask, 5, 255, cv2.THRESH_BINARY)
+    mask = cv2.erode(mask, gse(6,6), iterations=1)
+    mask = cv2.medianBlur(mask, 5)
+
     return mask
 
 def find_circle_ransac(points, max_iterations=1000, inlier_threshold=5.0, min_inliers=10):
@@ -237,7 +240,15 @@ def runPipeline(img, llrobot):
 
 # DO NOT INCLUDE IN LIMELIGHT
 if __name__ == "__main__":
-    img = cv2.imread("images3/30.png")
-    llrobot = [1.0, 0.0, 0.0]
-    _, img, _ = runPipeline(img, llrobot)
-    debug("Detection", img)
+    mode = 0
+    if mode == 0:
+        for i in range(1, 30):
+            img = cv2.imread(f"images3/{i}.png")
+            llrobot = [1.0, 0.0, 0.0]
+            _, img, _ = runPipeline(img, llrobot)
+            debug(f"Detection {i}", img)
+    else:
+        img = cv2.imread(f"images3/14.png")
+        llrobot = [1.0, 0.0, 0.0]
+        _, img, _ = runPipeline(img, llrobot)
+        debug("Detection", img)
