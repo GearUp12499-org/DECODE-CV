@@ -17,8 +17,7 @@ PURPLE_RANGE = [
     [138, 100, 40],
     [168, 255, 255]
 ]
-THRESHOLD_FDIST = 0.1 # inches threshold for the limelight to signal that intake can start spinning
-THRESHOLD_ANGLE = 15 # degree magnitude 
+THRESHOLD_FDIST = 0.1 # inches threshold for the limelight to signal that intake can start spinning; need to know if this is even needed, or if some intake return type is needed
 
 # Formulas
 inches2px = lambda inches: inches * 72.85714286
@@ -238,7 +237,7 @@ def runPipeline(img, llrobot):
 
 # DO NOT INCLUDE IN LIMELIGHT
 if __name__ == "__main__":
-    img = cv2.imread("images3/21.png")
+    img = cv2.imread("images3/30.png")
     llrobot = [1.0, 0.0, 0.0]
     _, img, _ = runPipeline(img, llrobot)
     debug("Detection", img)
