@@ -22,7 +22,7 @@ THRESHOLD_FDIST = 0.1 # inches threshold for the limelight to signal that intake
 # Formulas
 inches2px = lambda inches: inches * 72.85714286
 px2inches = lambda px: px / 72.85714286
-fd = lambda r: (64.83671 / ((0.0263005*r) + 1.71293)) - 9.96142
+fd = lambda r: (-1.45669e9 / ((-290564.256*r) - 40436845.9)) - 16.01634
 turn = lambda xOff_in, radius_px: np.degrees(np.arctan2(xOff_in, fd(radius_px)))
 
 # Regression for fd(r); forward distance in inches with respect to pixel radius

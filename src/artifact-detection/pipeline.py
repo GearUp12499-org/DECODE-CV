@@ -13,7 +13,7 @@ GREEN_RANGE = [
     [40, 30, 80],
     [98, 245, 255]
 ]
-PURPLE_RANGE = [ 
+PURPLE_RANGE = [
     [138, 100, 40],
     [168, 255, 255]
 ]
@@ -22,16 +22,20 @@ THRESHOLD_FDIST = 0.1 # inches threshold for the limelight to signal that intake
 # Formulas
 inches2px = lambda inches: inches * 72.85714286
 px2inches = lambda px: px / 72.85714286
-fd = lambda r: (64.83671 / ((0.0263005*r) + 1.71293)) - 9.96142
+fd = lambda r: (-1.45669e9 / ((-290564.256*r) - 40436845.9)) - 16.01634
 turn = lambda xOff_in, radius_px: np.degrees(np.arctan2(xOff_in, fd(radius_px)))
 
 # Regression for fd(r); forward distance in inches with respect to pixel radius
 
 # Do not include debug and draw in limelight. Delete all calls
+debug_mode = 1
 def debug(name, mask):
-    cv2.imshow(name, mask)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+    if debug_mode == 0:
+        cv2.imshow(name, mask)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+    else:
+        return
 
 def draw(img, x, y, r):
     x = int(x)
@@ -239,17 +243,16 @@ def runPipeline(img, llrobot):
 
 # DO NOT INCLUDE IN LIMELIGHT
 if __name__ == "__main__":
-    mode = 1
+    mode = 0
     if mode == 0:
         for i in range(1, 31):
+            print(f"=================== image{i}.png ===================")
             img = cv2.imread(f"images3/{i}.png")
             llrobot = [1.0, 0.0, 0.0]
             _, img, _ = runPipeline(img, llrobot)
             debug(f"Detection {i}", img)
     else:
-        img = cv2.imread(f"images3/30.png")
+        img = cv2.imread(f"images3/2.png")
         llrobot = [1.0, 0.0, 0.0]
         _, img, out = runPipeline(img, llrobot)
         debug("Detection", img)
-        for i, val in enumerate(out):
-            print(f"  [{i}] {val} -> {type(val)}")
