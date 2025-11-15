@@ -191,7 +191,7 @@ def runPipeline(img, llrobot):
                 print("xOff_in:", xOff, "yOff_in:", yOff, "radius_in:", radius, "forward_in:", forward, "angle", angle)
                 print("x:", x, "y:", y, "r:", r)
                 img = draw(img, x, y, r)
-                return np.array([[]]), img, [returnType, xOff, yOff, forward, angle, 0.0, 0.0, 0.0] # SIG --> 1, found
+                return np.array([[]]), img, [returnType, xOff, yOff, forward, angle, r, 0.0, 0.0] # SIG --> 1, found
             return np.array([[]]), img, [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0] # SIG --> 0, nothing
 
         if llrobot[1] > 0.5:
@@ -204,7 +204,7 @@ def runPipeline(img, llrobot):
                 print("xOff_in:", xOff, "yOff_in:", yOff, "radius_in:", radius, "forward_in:", forward, "angle", angle)
                 print("x:", x, "y:", y, "r:", r)
                 img = draw(img, x, y, r)
-                return np.array([[]]), img, [returnType, xOff, yOff, forward, angle, 0.0, 0.0, 0.0] # SIG --> 1, found
+                return np.array([[]]), img, [returnType, xOff, yOff, forward, angle, r, 0.0, 0.0] # SIG --> 1, found
 
             return np.array([[]]), img, [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0] # SIG --> 0, nothing
 
@@ -218,7 +218,7 @@ def runPipeline(img, llrobot):
                 print("xOff_in:", xOff, "yOff_in:", yOff, "radius_in:", radius, "forward_in:", forward, "angle", angle)
                 print("x:", x, "y:", y, "r:", r)
                 img = draw(img, x, y, r)
-                return np.array([[]]), img, [returnType, xOff, yOff, forward, angle, 0.0, 0.0, 0.0] # SIG --> 1, found
+                return np.array([[]]), img, [returnType, xOff, yOff, forward, angle, r, 0.0, 0.0] # SIG --> 1, found
 
             return np.array([[]]), img, [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0] # SIG --> 0, nothing
 
