@@ -239,7 +239,7 @@ def runPipeline(img, llrobot):
 
 # DO NOT INCLUDE IN LIMELIGHT
 if __name__ == "__main__":
-    mode = 0
+    mode = 1
     if mode == 0:
         for i in range(1, 31):
             img = cv2.imread(f"images3/{i}.png")
@@ -249,5 +249,7 @@ if __name__ == "__main__":
     else:
         img = cv2.imread(f"images3/30.png")
         llrobot = [1.0, 0.0, 0.0]
-        _, img, _ = runPipeline(img, llrobot)
+        _, img, out = runPipeline(img, llrobot)
         debug("Detection", img)
+        for i, val in enumerate(out):
+            print(f"  [{i}] {val} -> {type(val)}")
